@@ -15,7 +15,6 @@ import {
   Thead,
   Tr,
 } from '@chakra-ui/react';
-import { useToggle } from '@uidotdev/usehooks';
 
 import { useAuthor } from '../../../../features/authors/hooks/useAuthor';
 import { useBookList } from '../../../../features/books/hooks/useBookList';
@@ -32,7 +31,7 @@ export type Props = {
 export const AuthorDetailModal: React.FC<Props> = ({ authorId, isOpen, onClose }) => {
   const { data: allBookList } = useBookList();
   const { data: author } = useAuthor({ authorId });
-  const [isEdit, toggleIsEdit] = useToggle(false);
+  const [isEdit, toggleIsEdit] = useState(false);
 
   const bookList = allBookList?.filter((book) => book.author.id === authorId);
 
