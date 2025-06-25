@@ -17,10 +17,10 @@ const app = new Hono();
 app.use(secureHeaders());
 app.use(
   cors({
-    allowHeaders: ['Content-Type', 'Accept-Encoding', 'X-Accept-Encoding', 'Authorization'],
+    allowHeaders: ['Content-Type', 'Accept-Encoding', 'Authorization'],
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     credentials: true,
-    exposeHeaders: ['Content-Encoding', 'X-Content-Encoding'],
+    exposeHeaders: ['Content-Encoding'],
     origin: (origin) => origin,
   }),
 );
