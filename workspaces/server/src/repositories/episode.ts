@@ -168,20 +168,6 @@ class EpisodeRepository implements EpisodeRepositoryInterface {
               id: true,
             },
           },
-          pages: {
-            columns: {
-              id: true,
-              page: true,
-            },
-            with: {
-              image: {
-                columns: {
-                  alt: true,
-                  id: true,
-                },
-              },
-            },
-          },
         },
       });
 
