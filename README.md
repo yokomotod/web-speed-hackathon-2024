@@ -1,5 +1,7 @@
 # Web Speed Hackathon 2024 Cyber TOON
 
+本レポジトリは[本家](https://github.com/CyberAgentHack/web-speed-hackathon-2024)から改修をやや加えて、最初からそれなりに使える状態にしたレポジトリです。
+
 ## 概要
 
 **"Web Speed Hackathon 2024" は、非常に重たい Web アプリをチューニングして、いかに高速にするかを競う競技です。**
@@ -22,7 +24,7 @@
 
 評価対象となる環境 (URL) を作成し、次のリンクから参加登録してください。
 
-https://github.com/CyberAgentHack/web-speed-hackathon-2024-scoring-tool/issues/new/choose
+https://github.com/inakam/web-speed-hackathon-2024-scoring-tool/issues/new/choose
 
 ## デプロイ
 
