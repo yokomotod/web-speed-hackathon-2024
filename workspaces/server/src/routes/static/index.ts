@@ -11,6 +11,9 @@ app.use(
   '*',
   serveStatic({
     root: path.relative(process.cwd(), CLIENT_STATIC_PATH),
+    onNotFound: (path, c) => {
+      console.log(`Static file not found: ${path}`);
+    },
   }),
 );
 

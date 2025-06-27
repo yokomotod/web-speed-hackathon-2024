@@ -14,8 +14,12 @@ export async function preloadImages() {
     return ['.bmp', '.jpg', '.jpeg', '.gif', '.png', '.webp', '.avif'].includes(extension);
   });
 
-  const prefetch = Promise.all(
-    imagePathList.map((imagePath) => {
+  // Preload only first 5 images with high priority, rest with low priority
+  const highPriorityImages = imagePathList.slice(0, 5);
+  const lowPriorityImages = imagePathList.slice(5);
+
+  const prefetchHighPriority = Promise.all(
+    highPriorityImages.map((imagePath) => {
       return new Promise((resolve) => {
         const link = document.createElement('link');
 
@@ -33,5 +37,20 @@ export async function preloadImages() {
     }),
   );
 
-  await Promise.race([prefetch, wait(5000)]);
+  // Load low priority images after a delay
+  setTimeout(() => {
+    lowPriorityImages.forEach((imagePath) => {
+      const link = document.createElement('link');
+      Object.assign(link, {
+        as: 'image',
+        crossOrigin: 'anonymous',
+        fetchPriority: 'low',
+        href: imagePath,
+        rel: 'preload',
+      });
+      document.head.appendChild(link);
+    });
+  }, 1000);
+
+  await Promise.race([prefetchHighPriority, wait(2000)]);
 }

@@ -5,19 +5,19 @@ import 'jimp';
 
 declare const Jimp: typeof import('jimp');
 
-export async function transformJpegXLToBmp(response: Response): Promise<Response> {
+export async function transformJpegXLToWebP(response: Response): Promise<Response> {
   const { decode } = await jsquashInit(undefined, {
     locateFile: () => {},
     wasmBinary: jsquashWasmBinary,
   });
 
   const imageData = decode(await response.arrayBuffer())!;
-  const bmpBinary = await new Jimp(imageData).getBufferAsync(Jimp.MIME_BMP);
+  const webpBinary = await new Jimp(imageData).quality(85).getBufferAsync(Jimp.MIME_WEBP);
 
-  return new Response(bmpBinary, {
+  return new Response(webpBinary, {
     headers: {
-      'Cache-Control': 'no-store',
-      'Content-Type': 'image/bmp',
+      'Cache-Control': 'public, max-age=31536000, immutable',
+      'Content-Type': 'image/webp',
     },
   });
 }
