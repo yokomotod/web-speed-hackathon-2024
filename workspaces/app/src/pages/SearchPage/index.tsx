@@ -3,6 +3,7 @@ import { Suspense, useCallback, useId, useState } from 'react';
 import { useBookList } from '../../features/book/hooks/useBookList';
 import { Box } from '../../foundation/components/Box';
 import { Text } from '../../foundation/components/Text';
+import { useDebounce } from '../../foundation/hooks/useDebounce';
 import { Color, Space, Typography } from '../../foundation/styles/variables';
 
 import { Input } from './internal/Input';
@@ -14,6 +15,7 @@ const SearchPage: React.FC = () => {
   const searchResultsA11yId = useId();
 
   const [keyword, setKeyword] = useState('');
+  const debouncedKeyword = useDebounce(keyword, 300);
 
   const onChangedInput = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -29,7 +31,7 @@ const SearchPage: React.FC = () => {
         <Text color={Color.MONO_100} id={searchResultsA11yId} typography={Typography.NORMAL20} weight="bold">
           検索結果
         </Text>
-        {keyword !== '' && <SearchResult books={books} keyword={keyword} />}
+        {debouncedKeyword !== '' && <SearchResult books={books} keyword={debouncedKeyword} />}
       </Box>
     </Box>
   );
