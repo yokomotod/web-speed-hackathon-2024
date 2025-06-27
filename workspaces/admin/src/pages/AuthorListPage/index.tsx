@@ -22,6 +22,7 @@ import { useId, useMemo, useState } from 'react';
 
 import { useAuthorList } from '../../features/authors/hooks/useAuthorList';
 import { isContains } from '../../lib/filter/isContains';
+import { useDebounce } from '../../lib/hooks/useDebounce';
 
 import { AuthorDetailModal } from './internal/AuthorDetailModal';
 import { CreateAuthorModal } from './internal/CreateAuthorModal';
@@ -65,18 +66,21 @@ export const AuthorListPage: React.FC = () => {
     onSubmit() {},
   });
 
+  // 検索クエリをデバウンス処理（300ms）
+  const debouncedQuery = useDebounce(formik.values.query, 300);
+
   const filteredAuthorList = useMemo(() => {
-    if (formik.values.query === '') {
+    if (debouncedQuery === '') {
       return authorList;
     }
 
     switch (formik.values.kind) {
       case AuthorSearchKind.AuthorId: {
-        return authorList.filter((author) => author.id === formik.values.query);
+        return authorList.filter((author) => author.id === debouncedQuery);
       }
       case AuthorSearchKind.AuthorName: {
         return authorList.filter((author) => {
-          return isContains({ query: formik.values.query, target: author.name });
+          return isContains({ query: debouncedQuery, target: author.name });
         });
       }
       default: {
@@ -84,7 +88,7 @@ export const AuthorListPage: React.FC = () => {
         return authorList;
       }
     }
-  }, [formik.values.kind, formik.values.query, authorList]);
+  }, [formik.values.kind, debouncedQuery, authorList]);
 
   const [modal, setModal] = useState<AuthorModalState>({
     mode: AuthorModalMode.None,
