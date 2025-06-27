@@ -84,7 +84,8 @@ const _Wrapper = styled.div<{
   overflow-y: hidden;
   overscroll-behavior: none;
   padding-inline: ${({ $paddingInline }) => addUnitIfNeeded($paddingInline)};
-  touch-action: none;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
 
   &::-webkit-scrollbar {
     display: none;
@@ -121,15 +122,10 @@ const ComicViewerCore: React.FC<Props> = ({ episodeId }) => {
 
   const rafRef = useRef<number | null>(null);
 
+  // Simplified scroll handling with CSS scroll-snap
   const throttledScrollHandler = useCallback((ev: Pick<Event, 'currentTarget'>) => {
-    if (rafRef.current) return;
-    
-    rafRef.current = requestAnimationFrame(() => {
-      const scrollView = ev.currentTarget as HTMLDivElement;
-      getScrollToLeft({ pageCountParView, pageWidth, scrollView });
-      rafRef.current = null;
-    });
-  }, [pageCountParView, pageWidth]);
+    // CSS scroll-snap handles positioning automatically
+  }, []);
 
   useEffect(() => {
     const abortController = new AbortController();
