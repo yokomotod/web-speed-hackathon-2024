@@ -8,6 +8,7 @@ function convert_MB() {
 
 pnpm run build
 convert_MB ./workspaces/client/dist/client.global.js
+convert_MB ./workspaces/client/dist/admin.global.js
 convert_MB ./workspaces/client/dist/serviceworker.global.js
 convert_MB ./workspaces/server/dist/server.js
 pnpm run start
