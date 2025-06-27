@@ -61,6 +61,10 @@ const IMAGE_CONVERTER: Record<SupportedImageExtension, ConverterInterface> = {
   ['webp']: webpConverter,
 };
 
+// Simple in-memory cache for processed images
+const imageCache = new Map<string, { data: Uint8Array; mimeType: string; timestamp: number }>();
+const CACHE_TTL = 1000 * 60 * 60; // 1 hour
+
 const app = new Hono();
 
 app.get(
@@ -106,6 +110,14 @@ app.get(
       return c.body(createStreamBody(createReadStream(origFilePath)));
     }
 
+    // Check cache first
+    const cacheKey = `${reqImgId}-${resImgFormat}-${c.req.valid('query').width || 'auto'}-${c.req.valid('query').height || 'auto'}`;
+    const cached = imageCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      c.header('Content-Type', cached.mimeType);
+      return c.body(cached.data);
+    }
+
     const origBinary = await fs.readFile(origFilePath);
     const image = new Image(await IMAGE_CONVERTER[origImgFormat].decode(origBinary));
 
@@ -124,6 +136,19 @@ app.get(
       height: manipulated.height,
       width: manipulated.width,
     });
+
+    // Cache the result
+    imageCache.set(cacheKey, {
+      data: resBinary,
+      mimeType: IMAGE_MIME_TYPE[resImgFormat],
+      timestamp: Date.now()
+    });
+
+    // Limit cache size to prevent memory leaks
+    if (imageCache.size > 100) {
+      const firstKey = imageCache.keys().next().value;
+      imageCache.delete(firstKey);
+    }
 
     c.header('Content-Type', IMAGE_MIME_TYPE[resImgFormat]);
     return c.body(resBinary);
