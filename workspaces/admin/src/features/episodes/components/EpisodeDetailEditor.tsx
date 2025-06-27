@@ -29,6 +29,7 @@ import type { GetEpisodeResponse } from '@wsh-2024/schema/src/api/episodes/GetEp
 
 import { getImageUrl } from '../../../lib/image/getImageUrl';
 import { isSupportedImage } from '../../../lib/image/isSupportedImage';
+import { useImageEncryption } from '../../../lib/hooks/useImageEncryption';
 import { useCreateEpisode } from '../hooks/useCreateEpisode';
 import { useCreateEpisodePage } from '../hooks/useCreateEpisodePage';
 import { useDeleteEpisode } from '../hooks/useDeleteEpisode';
@@ -44,6 +45,7 @@ type Props = {
 
 export const EpisodeDetailEditor: React.FC<Props> = ({ book, episode }) => {
   const navigate = useNavigate();
+  const { encryptImage, isWorkerAvailable } = useImageEncryption();
 
   const { mutate: createEpisode } = useCreateEpisode();
   const { mutate: updateEpisode } = useUpdateEpisode();
@@ -150,14 +152,36 @@ export const EpisodeDetailEditor: React.FC<Props> = ({ book, episode }) => {
       canvas.height = image.naturalHeight;
       const ctx = canvas.getContext('2d')!;
 
-      encrypt({
-        exportCanvasContext: ctx,
-        sourceImage: image,
-        sourceImageInfo: {
-          height: image.naturalHeight,
-          width: image.naturalWidth,
-        },
-      });
+      if (isWorkerAvailable) {
+        try {
+          // Web Workerを使用した非同期暗号化
+          ctx.drawImage(image, 0, 0);
+          const imageData = ctx.getImageData(0, 0, image.naturalWidth, image.naturalHeight);
+          const encryptedImageData = await encryptImage(imageData, image.naturalWidth, image.naturalHeight);
+          ctx.putImageData(encryptedImageData, 0, 0);
+        } catch (error) {
+          console.warn('Worker encryption failed, falling back to main thread:', error);
+          // フォールバック: メインスレッドで処理
+          encrypt({
+            exportCanvasContext: ctx,
+            sourceImage: image,
+            sourceImageInfo: {
+              height: image.naturalHeight,
+              width: image.naturalWidth,
+            },
+          });
+        }
+      } else {
+        // Web Workerが使用できない場合はメインスレッドで処理
+        encrypt({
+          exportCanvasContext: ctx,
+          sourceImage: image,
+          sourceImageInfo: {
+            height: image.naturalHeight,
+            width: image.naturalWidth,
+          },
+        });
+      }
 
       const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
       if (blob == null) return;
