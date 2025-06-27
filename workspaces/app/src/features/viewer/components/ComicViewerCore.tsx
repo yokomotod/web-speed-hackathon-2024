@@ -1,5 +1,5 @@
 import { Suspense, useEffect, useState } from 'react';
-import { useInterval, useUpdate } from 'react-use';
+import { useUpdate } from 'react-use';
 import styled from 'styled-components';
 
 import { addUnitIfNeeded } from '../../../lib/css/addUnitIfNeeded';
@@ -101,7 +101,6 @@ type Props = {
 const ComicViewerCore: React.FC<Props> = ({ episodeId }) => {
   // 画面のリサイズに合わせて再描画する
   const rerender = useUpdate();
-  useInterval(rerender, 0);
 
   const { data: episode } = useEpisode({ params: { episodeId } });
 
@@ -182,6 +181,7 @@ const ComicViewerCore: React.FC<Props> = ({ episodeId }) => {
     let prevContentRect: DOMRectReadOnly | null = null;
     const handleResize = (entries: ResizeObserverEntry[]) => {
       if (prevContentRect != null && prevContentRect.width !== entries[0]?.contentRect.width) {
+        rerender(); // リサイズ時のみ再レンダリング
         requestAnimationFrame(() => {
           scrollView?.scrollBy({
             behavior: 'instant',
