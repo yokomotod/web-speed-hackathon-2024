@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useUpdate } from 'react-use';
 import styled from 'styled-components';
 
@@ -119,21 +119,33 @@ const ComicViewerCore: React.FC<Props> = ({ episodeId }) => {
     // 2ページ表示のときは、奇数ページが左側にあるべきなので、ページの最初と最後に1ページの余白をいれる
     (pageCountParView === 2 ? pageWidth : 0);
 
+  const rafRef = useRef<number | null>(null);
+
+  const throttledScrollHandler = useCallback((ev: Pick<Event, 'currentTarget'>) => {
+    if (rafRef.current) return;
+    
+    rafRef.current = requestAnimationFrame(() => {
+      const scrollView = ev.currentTarget as HTMLDivElement;
+      getScrollToLeft({ pageCountParView, pageWidth, scrollView });
+      rafRef.current = null;
+    });
+  }, [pageCountParView, pageWidth]);
+
   useEffect(() => {
     const abortController = new AbortController();
 
     let isPressed = false;
     let scrollToLeftWhenScrollEnd = 0;
 
-    const handlePointerDown = (ev: PointerEvent) => {
+    const handlePointerDown = useCallback((ev: PointerEvent) => {
       const scrollView = ev.currentTarget as HTMLDivElement;
       isPressed = true;
       scrollView.style.cursor = 'grabbing';
       scrollView.setPointerCapture(ev.pointerId);
       scrollToLeftWhenScrollEnd = getScrollToLeft({ pageCountParView, pageWidth, scrollView });
-    };
+    }, [pageCountParView, pageWidth]);
 
-    const handlePointerMove = (ev: PointerEvent) => {
+    const handlePointerMove = useCallback((ev: PointerEvent) => {
       if (isPressed) {
         const scrollView = ev.currentTarget as HTMLDivElement;
         scrollView.scrollBy({
@@ -142,28 +154,27 @@ const ComicViewerCore: React.FC<Props> = ({ episodeId }) => {
         });
         scrollToLeftWhenScrollEnd = getScrollToLeft({ pageCountParView, pageWidth, scrollView });
       }
-    };
+    }, [pageCountParView, pageWidth]);
 
-    const handlePointerUp = (ev: PointerEvent) => {
+    const handlePointerUp = useCallback((ev: PointerEvent) => {
       const scrollView = ev.currentTarget as HTMLDivElement;
       isPressed = false;
       scrollView.style.cursor = 'grab';
       scrollView.releasePointerCapture(ev.pointerId);
       scrollToLeftWhenScrollEnd = getScrollToLeft({ pageCountParView, pageWidth, scrollView });
-    };
+    }, [pageCountParView, pageWidth]);
 
-    const handleScroll = (ev: Pick<Event, 'currentTarget'>) => {
+    const handleScroll = useCallback((ev: Pick<Event, 'currentTarget'>) => {
       const scrollView = ev.currentTarget as HTMLDivElement;
       scrollToLeftWhenScrollEnd = getScrollToLeft({ pageCountParView, pageWidth, scrollView });
-    };
+    }, [pageCountParView, pageWidth]);
 
     let scrollEndTimer = -1;
     abortController.signal.addEventListener('abort', () => window.clearTimeout(scrollEndTimer), { once: true });
 
-    const handleScrollEnd = (ev: Pick<Event, 'currentTarget'>) => {
+    const handleScrollEnd = useCallback((ev: Pick<Event, 'currentTarget'>) => {
       const scrollView = ev.currentTarget as HTMLDivElement;
 
-      // マウスが離されるまではスクロール中とみなす
       if (isPressed) {
         scrollEndTimer = window.setTimeout(() => handleScrollEnd({ currentTarget: scrollView }), 0);
         return;
@@ -173,12 +184,12 @@ const ComicViewerCore: React.FC<Props> = ({ episodeId }) => {
           left: scrollToLeftWhenScrollEnd,
         });
       }
-    };
+    }, []);
 
     let prevContentRect: DOMRectReadOnly | null = null;
-    const handleResize = (entries: ResizeObserverEntry[]) => {
+    const handleResize = useCallback((entries: ResizeObserverEntry[]) => {
       if (prevContentRect != null && prevContentRect.width !== entries[0]?.contentRect.width) {
-        rerender(); // リサイズ時のみ再レンダリング
+        rerender();
         requestAnimationFrame(() => {
           scrollView?.scrollBy({
             behavior: 'instant',
@@ -187,13 +198,13 @@ const ComicViewerCore: React.FC<Props> = ({ episodeId }) => {
         });
       }
       prevContentRect = entries[0]?.contentRect ?? null;
-    };
+    }, [pageCountParView, pageWidth, rerender, scrollView]);
 
     scrollView?.addEventListener('pointerdown', handlePointerDown, { passive: false, signal: abortController.signal });
     scrollView?.addEventListener('pointermove', handlePointerMove, { passive: false, signal: abortController.signal });
     scrollView?.addEventListener('pointerup', handlePointerUp, { passive: false, signal: abortController.signal });
-    scrollView?.addEventListener('scroll', handleScroll, { passive: false, signal: abortController.signal });
-    scrollView?.addEventListener('scrollend', handleScrollEnd, { passive: false, signal: abortController.signal });
+    scrollView?.addEventListener('scroll', throttledScrollHandler, { passive: true, signal: abortController.signal });
+    scrollView?.addEventListener('scrollend', handleScrollEnd, { passive: true, signal: abortController.signal });
 
     const resizeObserver = new ResizeObserver(handleResize);
     scrollView && resizeObserver.observe(scrollView);
@@ -201,8 +212,12 @@ const ComicViewerCore: React.FC<Props> = ({ episodeId }) => {
 
     return () => {
       abortController.abort();
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
     };
-  }, [pageCountParView, pageWidth, scrollView]);
+  }, [pageCountParView, pageWidth, scrollView, throttledScrollHandler]);
 
   return (
     <_Container ref={containerRef}>
