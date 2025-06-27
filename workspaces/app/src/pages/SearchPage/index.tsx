@@ -1,4 +1,4 @@
-import { Suspense, useCallback, useId, useState } from 'react';
+import { Suspense, useCallback, useId, useState, useEffect } from 'react';
 
 import { useBookList } from '../../features/book/hooks/useBookList';
 import { Box } from '../../foundation/components/Box';
@@ -13,13 +13,23 @@ const SearchPage: React.FC = () => {
 
   const searchResultsA11yId = useId();
 
+  const [inputValue, setInputValue] = useState('');
   const [keyword, setKeyword] = useState('');
+
+  // Debounce the search keyword
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setKeyword(inputValue);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [inputValue]);
 
   const onChangedInput = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
-      setKeyword(event.target.value);
+      setInputValue(event.target.value);
     },
-    [setKeyword],
+    [setInputValue],
   );
 
   return (
