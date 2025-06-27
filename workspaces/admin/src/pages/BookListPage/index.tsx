@@ -18,7 +18,7 @@ import {
   Tr,
 } from '@chakra-ui/react';
 import { useFormik } from 'formik';
-import { useCallback, useId, useMemo, useState } from 'react';
+import { useCallback, useId, useMemo, useState, memo } from 'react';
 
 import { useBookList } from '../../features/books/hooks/useBookList';
 import { isContains } from '../../lib/filter/isContains';
@@ -55,6 +55,44 @@ type BookModalState =
       mode: typeof BookModalMode.Create;
       params: object;
     };
+
+// メモ化されたテーブル行コンポーネント
+const BookTableRow = memo<{
+  book: { id: string; name: string; author: { id: string; name: string } };
+  onDetailClick: (bookId: string) => void;
+}>(({ book, onDetailClick }) => {
+  const handleDetailClick = useCallback(() => {
+    onDetailClick(book.id);
+  }, [book.id, onDetailClick]);
+
+  return (
+    <Tr key={book.id}>
+      <Td textAlign="center" verticalAlign="middle">
+        <Button
+          colorScheme="teal"
+          onClick={handleDetailClick}
+          variant="solid"
+        >
+          詳細
+        </Button>
+      </Td>
+      <Td verticalAlign="middle">
+        <Text fontWeight="bold">{book.name}</Text>
+        <Text color="gray.400" fontSize="small">
+          {book.id}
+        </Text>
+      </Td>
+      <Td verticalAlign="middle">
+        <Text fontWeight="bold">{book.author.name}</Text>
+        <Text color="gray.400" fontSize="small">
+          {book.author.id}
+        </Text>
+      </Td>
+    </Tr>
+  );
+});
+
+BookTableRow.displayName = 'BookTableRow';
 
 export const BookListPage: React.FC = () => {
   const { data: bookList = [] } = useBookList();
@@ -107,6 +145,19 @@ export const BookListPage: React.FC = () => {
     mode: BookModalMode.None,
     params: {},
   });
+
+  // メモ化されたイベントハンドラ
+  const handleDetailClick = useCallback((bookId: string) => {
+    setModal({ mode: BookModalMode.Detail, params: { bookId } });
+  }, []);
+
+  const handleCreateClick = useCallback(() => {
+    setModal({ mode: BookModalMode.Create, params: {} });
+  }, []);
+
+  const handleCloseModal = useCallback(() => {
+    setModal({ mode: BookModalMode.None, params: {} });
+  }, []);
 
   return (
     <>
@@ -184,7 +235,7 @@ export const BookListPage: React.FC = () => {
             </Text>
             <Button
               colorScheme="teal"
-              onClick={() => setModal({ mode: BookModalMode.Create, params: {} })}
+              onClick={handleCreateClick}
               variant="solid"
             >
               作品を追加
@@ -201,29 +252,11 @@ export const BookListPage: React.FC = () => {
               </Thead>
               <Tbody>
                 {filteredBookList.map((book) => (
-                  <Tr key={book.id}>
-                    <Td textAlign="center" verticalAlign="middle">
-                      <Button
-                        colorScheme="teal"
-                        onClick={() => setModal({ mode: BookModalMode.Detail, params: { bookId: book.id } })}
-                        variant="solid"
-                      >
-                        詳細
-                      </Button>
-                    </Td>
-                    <Td verticalAlign="middle">
-                      <Text fontWeight="bold">{book.name}</Text>
-                      <Text color="gray.400" fontSize="small">
-                        {book.id}
-                      </Text>
-                    </Td>
-                    <Td verticalAlign="middle">
-                      <Text fontWeight="bold">{book.author.name}</Text>
-                      <Text color="gray.400" fontSize="small">
-                        {book.author.id}
-                      </Text>
-                    </Td>
-                  </Tr>
+                  <BookTableRow
+                    key={book.id}
+                    book={book}
+                    onDetailClick={handleDetailClick}
+                  />
                 ))}
               </Tbody>
             </Table>
@@ -235,11 +268,11 @@ export const BookListPage: React.FC = () => {
         <BookDetailModal
           isOpen
           bookId={modal.params.bookId}
-          onClose={() => setModal({ mode: BookModalMode.None, params: {} })}
+          onClose={handleCloseModal}
         />
       ) : null}
       {modal.mode === BookModalMode.Create ? (
-        <CreateBookModal isOpen onClose={() => setModal({ mode: BookModalMode.None, params: {} })} />
+        <CreateBookModal isOpen onClose={handleCloseModal} />
       ) : null}
     </>
   );
