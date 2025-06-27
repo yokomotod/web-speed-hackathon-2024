@@ -202,7 +202,7 @@ class AuthorRepository implements AuthorRepositoryInterface {
   async delete(options: { params: DeleteAuthorRequestParams }): Promise<Result<DeleteAuthorResponse, HTTPException>> {
     try {
       await getDatabase().transaction(async (tx) => {
-        await tx.delete(author).where(eq(author.id, options.params.authorId)).execute();
+        // First get all book IDs and episode IDs to delete
         const deleteBookRes = await tx
           .delete(book)
           .where(eq(book.authorId, options.params.authorId))
@@ -210,20 +210,32 @@ class AuthorRepository implements AuthorRepositoryInterface {
             bookId: book.id,
           })
           .execute();
-        for (const book of deleteBookRes) {
-          await tx.delete(feature).where(eq(feature.bookId, book.bookId)).execute();
-          await tx.delete(ranking).where(eq(ranking.bookId, book.bookId)).execute();
+        
+        if (deleteBookRes.length > 0) {
+          const bookIds = deleteBookRes.map(b => b.bookId);
+          
+          // Get all episode IDs for the books
           const deleteEpisodeRes = await tx
             .delete(episode)
-            .where(eq(episode.bookId, book.bookId))
+            .where(episode.bookId.in(bookIds))
             .returning({
               episodeId: episode.id,
             })
             .execute();
-          for (const episode of deleteEpisodeRes) {
-            await tx.delete(episodePage).where(eq(episodePage.episodeId, episode.episodeId)).execute();
+          
+          // Batch delete all related records
+          if (deleteEpisodeRes.length > 0) {
+            const episodeIds = deleteEpisodeRes.map(e => e.episodeId);
+            await tx.delete(episodePage).where(episodePage.episodeId.in(episodeIds)).execute();
           }
+          
+          // Delete features and rankings for all books at once
+          await tx.delete(feature).where(feature.bookId.in(bookIds)).execute();
+          await tx.delete(ranking).where(ranking.bookId.in(bookIds)).execute();
         }
+        
+        // Finally delete the author
+        await tx.delete(author).where(eq(author.id, options.params.authorId)).execute();
       });
 
       return ok({});

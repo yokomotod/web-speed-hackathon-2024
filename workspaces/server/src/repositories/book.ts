@@ -186,10 +186,8 @@ class BookRepository implements BookRepositoryInterface {
 
   async delete(options: { params: DeleteBookRequestParams }): Promise<Result<DeleteBookResponse, HTTPException>> {
     try {
-      getDatabase().transaction(async (tx) => {
-        await tx.delete(book).where(eq(book.id, options.params.bookId)).execute();
-        await tx.delete(feature).where(eq(feature.bookId, options.params.bookId)).execute();
-        await tx.delete(ranking).where(eq(ranking.bookId, options.params.bookId)).execute();
+      await getDatabase().transaction(async (tx) => {
+        // Get all episode IDs first
         const deleteEpisodeRes = await tx
           .delete(episode)
           .where(eq(episode.bookId, options.params.bookId))
@@ -197,9 +195,19 @@ class BookRepository implements BookRepositoryInterface {
             episodeId: episode.id,
           })
           .execute();
-        for (const episode of deleteEpisodeRes) {
-          await tx.delete(episodePage).where(eq(episodePage.episodeId, episode.episodeId)).execute();
+        
+        // Batch delete all episode pages if episodes exist
+        if (deleteEpisodeRes.length > 0) {
+          const episodeIds = deleteEpisodeRes.map(e => e.episodeId);
+          await tx.delete(episodePage).where(episodePage.episodeId.in(episodeIds)).execute();
         }
+        
+        // Delete book-related records in parallel
+        await Promise.all([
+          tx.delete(feature).where(eq(feature.bookId, options.params.bookId)).execute(),
+          tx.delete(ranking).where(eq(ranking.bookId, options.params.bookId)).execute(),
+          tx.delete(book).where(eq(book.id, options.params.bookId)).execute()
+        ]);
       });
 
       return ok({});
