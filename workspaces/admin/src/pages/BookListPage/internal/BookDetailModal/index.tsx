@@ -46,9 +46,9 @@ export const BookDetailModal: React.FC<Props> = ({ bookId, isOpen, onClose }) =>
           {book != null && (
             <>
               {isEdit ? (
-                <BookEditContent book={book} onEditComplete={() => toggleIEdit()} />
+                <BookEditContent book={book} onEditComplete={() => toggleIEdit(false)} />
               ) : (
-                <BookDetailContent book={book} onCloseDialog={onClose} onEdit={() => toggleIEdit()} />
+                <BookDetailContent book={book} onCloseDialog={onClose} onEdit={() => toggleIEdit(true)} />
               )}
             </>
           )}

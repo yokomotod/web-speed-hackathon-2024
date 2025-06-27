@@ -17,10 +17,6 @@ export const BookDetailContent: React.FC<BookDetailContentProps> = ({ book, onCl
   const { refetch: refetchBookList } = useBookList();
   const { mutate: deleteBook } = useDeleteBook();
 
-  const handleEditClick = useCallback(() => {
-    onEdit();
-  }, [onEdit]);
-
   const handleDeleteClick = useCallback(() => {
     deleteBook(
       {
@@ -61,7 +57,7 @@ export const BookDetailContent: React.FC<BookDetailContentProps> = ({ book, onCl
         </Stack>
       </Flex>
       <Flex gap={4} justify="flex-end" pb={4}>
-        <Button colorScheme="teal" onClick={handleEditClick} variant="solid">
+        <Button colorScheme="teal" onClick={onEdit} variant="solid">
           編集
         </Button>
         <Button onClick={handleDeleteClick}>削除</Button>
