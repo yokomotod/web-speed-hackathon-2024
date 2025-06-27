@@ -2,9 +2,18 @@ import { useAsync } from 'react-use';
 
 import { getImageUrl } from '../../lib/image/getImageUrl';
 
+// Cache for processed images
+const imageCache = new Map<string, string>();
+
 export const useImage = ({ height, imageId, width }: { height: number; imageId: string; width: number }) => {
   const { value } = useAsync(async () => {
     const dpr = window.devicePixelRatio;
+    const cacheKey = `${imageId}-${width}-${height}-${dpr}`;
+    
+    // Return cached result if available
+    if (imageCache.has(cacheKey)) {
+      return imageCache.get(cacheKey)!;
+    }
 
     const img = new Image();
     img.src = getImageUrl({
@@ -39,7 +48,19 @@ export const useImage = ({ height, imageId, width }: { height: number; imageId: 
       ctx.drawImage(img, srcX, srcY, srcW, srcH, 0, 0, width * dpr, height * dpr);
     }
 
-    return canvas.toDataURL('image/png');
+    // Use WebP format for better compression
+    const result = canvas.toDataURL('image/webp', 0.85);
+    
+    // Cache the result
+    imageCache.set(cacheKey, result);
+    
+    // Limit cache size to prevent memory leaks
+    if (imageCache.size > 100) {
+      const firstKey = imageCache.keys().next().value;
+      imageCache.delete(firstKey);
+    }
+
+    return result;
   }, [height, imageId, width]);
 
   return value;
