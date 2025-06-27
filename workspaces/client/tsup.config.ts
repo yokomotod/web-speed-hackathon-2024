@@ -36,6 +36,7 @@ export default defineConfig(async (): Promise<Options[]> => {
         };
         options.publicPath = '/';
       },
+      // 実はここも不要説
       esbuildPlugins: [
         polyfillNode({
           globals: {
