@@ -2,12 +2,14 @@ import { useSetAtom } from 'jotai';
 import React, { useId } from 'react';
 import styled from 'styled-components';
 
+import { useTerm } from '../hooks/useTerm';
+
 import { DialogContentAtom } from '../atoms/DialogContentAtom';
 import { COMPANY } from '../constants/Company';
 import { CONTACT } from '../constants/Contact';
 import { OVERVIEW } from '../constants/Overview';
 import { QUESTION } from '../constants/Question';
-import { TERM } from '../constants/Term';
+// import { TERM } from '../constants/Term'; // 大きすぎるため無効化
 import { Color, Space, Typography } from '../styles/variables';
 
 import { Box } from './Box';
@@ -25,6 +27,7 @@ const _Content = styled.section`
 `;
 
 export const Footer: React.FC = () => {
+  const { loadTerm } = useTerm();
 
   const termDialogA11yId = useId();
   const contactDialogA11yId = useId();
@@ -34,7 +37,8 @@ export const Footer: React.FC = () => {
 
   const updateDialogContent = useSetAtom(DialogContentAtom);
 
-  const handleRequestToTermDialogOpen = () => {
+  const handleRequestToTermDialogOpen = async () => {
+    // ローディング表示
     updateDialogContent(
       <_Content aria-labelledby={termDialogA11yId} role="dialog">
         <Text as="h2" color={Color.MONO_100} id={termDialogA11yId} typography={Typography.NORMAL16}>
@@ -42,7 +46,22 @@ export const Footer: React.FC = () => {
         </Text>
         <Spacer height={Space * 1} />
         <Text as="p" color={Color.MONO_100} typography={Typography.NORMAL12}>
-          {TERM}
+          読み込み中...
+        </Text>
+      </_Content>,
+    );
+
+    // 利用規約を動的にロード
+    const term = await loadTerm();
+    
+    updateDialogContent(
+      <_Content aria-labelledby={termDialogA11yId} role="dialog">
+        <Text as="h2" color={Color.MONO_100} id={termDialogA11yId} typography={Typography.NORMAL16}>
+          利用規約
+        </Text>
+        <Spacer height={Space * 1} />
+        <Text as="p" color={Color.MONO_100} typography={Typography.NORMAL12}>
+          {term || '利用規約の読み込みに失敗しました。'}
         </Text>
       </_Content>,
     );
