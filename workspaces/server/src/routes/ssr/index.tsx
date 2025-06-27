@@ -21,21 +21,18 @@ const app = new Hono();
 async function createInjectDataStr(): Promise<Record<string, unknown>> {
   const json: Record<string, unknown> = {};
 
-  {
-    const dayOfWeek = getDayOfWeekStr(new Date());
-    const releases = await releaseApiClient.fetch({ params: { dayOfWeek } });
-    json[unstable_serialize(releaseApiClient.fetch$$key({ params: { dayOfWeek } }))] = releases;
-  }
+  // Parallelize API calls for better performance
+  const dayOfWeek = getDayOfWeekStr(new Date());
+  
+  const [releases, features, ranking] = await Promise.all([
+    releaseApiClient.fetch({ params: { dayOfWeek } }),
+    featureApiClient.fetchList({ query: {} }),
+    rankingApiClient.fetchList({ query: {} })
+  ]);
 
-  {
-    const features = await featureApiClient.fetchList({ query: {} });
-    json[unstable_serialize(featureApiClient.fetchList$$key({ query: {} }))] = features;
-  }
-
-  {
-    const ranking = await rankingApiClient.fetchList({ query: {} });
-    json[unstable_serialize(rankingApiClient.fetchList$$key({ query: {} }))] = ranking;
-  }
+  json[unstable_serialize(releaseApiClient.fetch$$key({ params: { dayOfWeek } }))] = releases;
+  json[unstable_serialize(featureApiClient.fetchList$$key({ query: {} }))] = features;
+  json[unstable_serialize(rankingApiClient.fetchList$$key({ query: {} }))] = ranking;
 
   return json;
 }
